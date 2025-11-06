@@ -17,7 +17,7 @@ type NetworkedProjectile struct {
 	Vel_Y      float32
 	Vel_Z      float32
 	Speed      float32
-	Damage     uint8
+	Damage     int
 	Name       string
 	ServerTime uint64
 }

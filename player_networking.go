@@ -13,7 +13,7 @@ type NetworkedPlayer struct {
 	Pos_X  float32
 	Pos_Y  float32
 	Pos_Z  float32
-	Health uint8
+	Health int
 	ID     uint8
 }
 type CollectionOfNetworkedPlayers struct {
@@ -89,11 +89,19 @@ func UpdatePlayerPos(ctx *gin.Context) {
 	}
 
 	new_player_data := NetworkedPlayer{}
+
 	if err := json.Unmarshal(json_data, &new_player_data); err != nil {
 		panic(err)
 	}
 
-	Players.Store(new_player_data.ID, new_player_data)
+	playerr, there := Players.Load(new_player_data.ID)
+	if there {
+		player_health := playerr.(NetworkedPlayer)
+
+		new_player_data.Health = player_health.Health
+
+		Players.Store(new_player_data.ID, new_player_data)
+	}
 }
 
 func GetPlayerHealth(ctx *gin.Context) {
@@ -107,12 +115,14 @@ func GetPlayerHealth(ctx *gin.Context) {
 		panic(err)
 	}
 
-	player, _ := Players.Load(get_player_id.ID)
-	player_health := player.(NetworkedPlayer)
+	playerr, there := Players.Load(get_player_id.ID)
+	if there {
+		player_health := playerr.(NetworkedPlayer)
 
-	get_player_id.Health = player_health.Health
+		get_player_id.Health = player_health.Health
 
-	ctx.JSON(http.StatusAccepted, get_player_id)
+		ctx.JSON(http.StatusAccepted, get_player_id)
+	}
 }
 
 func DamagePlayer(ctx *gin.Context) {
@@ -127,4 +137,16 @@ func DamagePlayer(ctx *gin.Context) {
 	}
 
 	PlayerDamageMap.Store(new_data, new_data)
+}
+
+func CheckPlayers(ctx *gin.Context) {
+	var players_to_send CollectionOfNetworkedPlayers
+
+	Players.Range(func(key, value any) bool {
+		player := value.(NetworkedPlayer)
+		players_to_send.Players = append(players_to_send.Players, player)
+		return true
+	})
+
+	ctx.JSON(http.StatusOK, players_to_send)
 }

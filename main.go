@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -21,6 +20,28 @@ func GetServerData(ctx *gin.Context) {
 func main() {
 	r := gin.Default()
 
+	// varible
+	go func() {
+		for true {
+			PlayerDamageMap.Range(func(key, value any) bool {
+				player_and_projectile := value.(PlayerAndProjectileNetworked)
+
+				old_player, there := Players.Load(player_and_projectile.Player.ID)
+				if there {
+					new_player := old_player.(NetworkedPlayer)
+					new_player.Health -= player_and_projectile.Projectile.Damage
+
+					Players.Store(new_player.ID, new_player)
+
+					PlayerDamageMap.Delete(key)
+				}
+				return true
+
+			})
+		}
+	}()
+
+	// constant
 	go func() {
 		for true {
 			time.Sleep(time.Second / 60)
@@ -37,25 +58,6 @@ func main() {
 
 				return true
 			})
-
-			PlayerDamageMap.Range(func(key, value any) bool {
-				player_and_projectile := value.(PlayerAndProjectileNetworked)
-
-				old_player, _ := Players.Load(player_and_projectile.Player.ID)
-
-				new_player := old_player.(NetworkedPlayer)
-				new_player.Health -= player_and_projectile.Projectile.Damage
-
-				Players.Store(new_player.ID, new_player)
-
-				PlayerDamageMap.Delete(key)
-				return true
-			})
-
-			Players.Range(func(key, value any) bool {
-				fmt.Println(value)
-				return true
-			})
 		}
 	}()
 
@@ -66,6 +68,7 @@ func main() {
 	r.POST("UpdatePlayerPos", UpdatePlayerPos)
 	r.POST("DamagePlayer", DamagePlayer)
 	r.POST("GetPlayerHealth", GetPlayerHealth)
+	r.GET("CheckPlayers", CheckPlayers)
 
 	r.POST("SpawnProjectile", SpawnProjectile)
 	r.GET("GetProjectiles", GetProjectiles)
