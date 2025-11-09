@@ -13,6 +13,8 @@ type ServerDataStruct struct {
 
 var ServerData = ServerDataStruct{}
 
+var Level NetworkedLevel
+
 func GetServerData(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, ServerData)
 }
@@ -68,10 +70,14 @@ func main() {
 	r.POST("UpdatePlayerPos", UpdatePlayerPos)
 	r.POST("DamagePlayer", DamagePlayer)
 	r.POST("GetPlayerHealth", GetPlayerHealth)
+	r.POST("GetPlayerMapState", GetPlayerMapState)
 	r.GET("CheckPlayers", CheckPlayers)
 
 	r.POST("SpawnProjectile", SpawnProjectile)
 	r.GET("GetProjectiles", GetProjectiles)
+
+	r.POST("SendLevel", SendLevel)
+	r.GET("GetLevel", GetLevel)
 
 	r.Run()
 }

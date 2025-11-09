@@ -27,6 +27,7 @@ type PlayerAndProjectileNetworked struct {
 
 var Players sync.Map
 var PlayerDamageMap sync.Map
+var PlayerUpdateMap sync.Map
 
 func GetSyncMapSize(m *sync.Map) int {
 	count := 0
@@ -52,6 +53,7 @@ func AddPlayer(ctx *gin.Context) {
 
 	new_player_data.ID = uint8(GetSyncMapSize(&Players) + 1)
 	Players.Store(new_player_data.ID, new_player_data)
+	PlayerUpdateMap.Store(new_player_data.ID, false)
 
 	ctx.JSON(http.StatusAccepted, new_player_data)
 }
@@ -123,6 +125,31 @@ func GetPlayerHealth(ctx *gin.Context) {
 
 		ctx.JSON(http.StatusAccepted, get_player_id)
 	}
+}
+
+func GetPlayerMapState(ctx *gin.Context) {
+	json_data, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	get_player_id := NetworkedPlayer{}
+	if err := json.Unmarshal(json_data, &get_player_id); err != nil {
+		panic(err)
+	}
+	get_player_map_state, exists := PlayerUpdateMap.Load(get_player_id.ID)
+	player_map_state := get_player_map_state.(bool)
+	if exists {
+		if player_map_state {
+			get_player_id.Pos_X = 0
+		} else {
+			get_player_id.Pos_X = -1
+			PlayerUpdateMap.Delete(get_player_id.ID)
+			PlayerUpdateMap.Store(get_player_id.ID, true)
+		}
+	}
+
+	ctx.JSON(http.StatusAccepted, get_player_id)
 }
 
 func DamagePlayer(ctx *gin.Context) {
